@@ -13,14 +13,18 @@ np.random.seed(42)
 random.seed(42)
 
 
-def dataLoading(path):
+def dataLoading(dataset):
   x = []
   labels = []
   dim = 0
+  path = 'dataset/' + dataset + '.csv'
   with open(path, 'r') as f:
     csv_reader = csv.reader(f)
     for i in csv_reader:
-      dim = len(i) - 2
+      if dataset == 'spambase_normalization':
+        dim = len(i) - 1
+      else:
+        dim = len(i) - 2
       x.append(i[0:dim])
       labels.append(i[dim])
     for m in range(len(x)):
@@ -110,7 +114,7 @@ class DevModel(torch.nn.Module):
     sub_result = torch.sub(de2, x)
     recon_error = torch.norm(sub_result, p=2, dim=1)
     recon_error = recon_error.reshape(-1, 1)
-    residual_error = sub_result / recon_error
+    residual_error = sub_result / (recon_error + 1e-5)
 
     input_tensor = torch.cat([recon_error, residual_error, en2], dim=1)
     intermediate = torch.nn.functional.relu(self.fc1(input_tensor))
@@ -179,8 +183,7 @@ def run(args):
     dataset = dataset.strip()
     aucroc = torch.zeros(runs)
     aucpr = torch.zeros(runs)
-    path = './dataset/' + dataset + '.csv'
-    x, labels, dim = dataLoading(path)
+    x, labels, dim = dataLoading(dataset)
     for i in range(runs):
       print("{} :round is {}".format(dataset, i + 1))
       test_ratio = 0.2
